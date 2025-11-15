@@ -1,0 +1,2 @@
+# Dependencias para Lambda de Tracking
+# boto3 incluido en runtime

@@ -1,0 +1,2 @@
+# Dependencias para Lambda de Optimización de Rutas
+# boto3 incluido en runtime

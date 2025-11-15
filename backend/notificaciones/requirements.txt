@@ -1,0 +1,2 @@
+# Dependencias para Lambda de Notificaciones
+# boto3 incluido en runtime

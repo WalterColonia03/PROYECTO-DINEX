@@ -1,0 +1,7 @@
+# Dependencias para la función Lambda de Tracking
+# boto3 y botocore ya están incluidos en el runtime de Lambda
+# Este archivo está vacío porque no necesitamos dependencias adicionales
+
+# Si en el futuro necesitas agregar dependencias:
+# requests==2.31.0
+# python-dateutil==2.8.2

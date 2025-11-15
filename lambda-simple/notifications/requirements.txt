@@ -1,0 +1,2 @@
+# Dependencias para la función Lambda de Notificaciones
+# boto3 y botocore ya están incluidos en el runtime de Lambda

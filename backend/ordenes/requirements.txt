@@ -1,0 +1,6 @@
+# Dependencias para Lambda de Órdenes
+# boto3 y botocore ya están incluidos en el runtime de Lambda
+
+# Para testing local (no se incluyen en el deployment)
+# pytest==7.4.3
+# moto==4.2.9

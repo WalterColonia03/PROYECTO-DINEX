@@ -1,0 +1,131 @@
+---
+# Playbook de Ansible para configuración post-deployment
+# DINEX Perú - Infraestructura como Código
+
+- name: Configurar infraestructura DINEX
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    environment: dev
+    aws_region: us-east-1
+    project_name: dinex
+
+  tasks:
+    - name: Mostrar información del sistema
+      debug:
+        msg: "Configurando ambiente {{ environment }} para {{ project_name }}"
+
+    - name: Verificar que AWS CLI está instalado
+      command: aws --version
+      register: aws_version
+      changed_when: false
+
+    - name: Mostrar versión de AWS CLI
+      debug:
+        var: aws_version.stdout
+
+    - name: Verificar credenciales de AWS
+      command: aws sts get-caller-identity
+      register: aws_identity
+      changed_when: false
+
+    - name: Mostrar identidad de AWS
+      debug:
+        var: aws_identity.stdout
+
+    - name: Obtener outputs de Terraform
+      command: terraform output -json
+      args:
+        chdir: "../infra/environments/{{ environment }}"
+      register: terraform_outputs
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Parsear outputs de Terraform
+      set_fact:
+        tf_outputs: "{{ terraform_outputs.stdout | from_json }}"
+      when: terraform_outputs.rc == 0
+
+    - name: Mostrar URL del API Gateway
+      debug:
+        msg: "API Gateway URL: {{ tf_outputs.api_gateway_url.value }}"
+      when: terraform_outputs.rc == 0
+
+    - name: Crear archivo de configuración
+      copy:
+        content: |
+          # Configuración de DINEX - Ambiente {{ environment }}
+          # Generado automáticamente por Ansible
+
+          AWS_REGION={{ aws_region }}
+          ENVIRONMENT={{ environment }}
+          PROJECT={{ project_name }}
+
+          {% if terraform_outputs.rc == 0 %}
+          API_URL={{ tf_outputs.api_gateway_url.value }}
+          ORDERS_TABLE={{ tf_outputs.orders_table_name.value }}
+          {% endif %}
+        dest: "../config.env"
+      when: terraform_outputs.rc == 0
+
+    - name: Verificar estado de funciones Lambda
+      command: >
+        aws lambda list-functions
+        --region {{ aws_region }}
+        --query "Functions[?starts_with(FunctionName, '{{ project_name }}-{{ environment }}')].FunctionName"
+      register: lambda_functions
+      changed_when: false
+
+    - name: Mostrar funciones Lambda
+      debug:
+        msg: "Funciones Lambda encontradas: {{ lambda_functions.stdout }}"
+
+    - name: Health check del API Gateway
+      uri:
+        url: "{{ tf_outputs.api_gateway_url.value }}/health"
+        method: GET
+        status_code: [200, 404]  # 404 es aceptable si el endpoint health no existe
+      register: health_check
+      when: terraform_outputs.rc == 0
+      ignore_errors: yes
+
+    - name: Mostrar resultado de health check
+      debug:
+        msg: "Health check status: {{ health_check.status }}"
+      when: terraform_outputs.rc == 0 and health_check is defined
+
+    - name: Crear archivo de inventario de recursos
+      copy:
+        content: |
+          # Inventario de Recursos - DINEX {{ environment }}
+          # Generado: {{ ansible_date_time.iso8601 }}
+
+          ## Funciones Lambda
+          {{ lambda_functions.stdout | default('No disponible') }}
+
+          ## CloudWatch Dashboard
+          Dashboard: {{ project_name }}-{{ environment }}-dashboard
+
+          ## DynamoDB Tables
+          - {{ project_name }}-{{ environment }}-orders
+          - {{ project_name }}-{{ environment }}-tracking
+          - {{ project_name }}-{{ environment }}-routes
+
+          ## SQS Queues
+          - {{ project_name }}-{{ environment }}-orders-queue
+          - {{ project_name }}-{{ environment }}-notifications-queue
+        dest: "../docs/resource-inventory-{{ environment }}.md"
+
+    - name: Resumen de configuración
+      debug:
+        msg:
+          - "=========================================="
+          - "Configuración completada para {{ environment }}"
+          - "=========================================="
+          - "AWS Region: {{ aws_region }}"
+          - "Project: {{ project_name }}"
+          - "=========================================="
+          - "Archivos generados:"
+          - "  - config.env"
+          - "  - docs/resource-inventory-{{ environment }}.md"
+          - "=========================================="
