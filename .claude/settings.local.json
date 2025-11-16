@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(if exist deployment.zip del deployment.zip)",
+      "Bash(powershell Compress-Archive:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(terraform init:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

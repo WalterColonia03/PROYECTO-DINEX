@@ -190,7 +190,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
 
 resource "aws_lambda_function" "tracking" {
   # Ubicación del código empaquetado (archivo .zip)
-  filename = "${path.module}/../lambda-simple/tracking/deployment.zip"
+  filename = "${path.module}/../lambda/tracking/deployment.zip"
 
   # Nombre de la función en AWS
   function_name = "${var.project}-tracking-${var.environment}"
@@ -207,7 +207,7 @@ resource "aws_lambda_function" "tracking" {
 
   # Hash del código fuente: Detecta cambios en el archivo
   # Si cambia el .zip, Lambda actualiza la función automáticamente
-  source_code_hash = filebase64sha256("${path.module}/../lambda-simple/tracking/deployment.zip")
+  source_code_hash = filebase64sha256("${path.module}/../lambda/tracking/deployment.zip")
 
   # Timeout: Tiempo máximo de ejecución (segundos)
   # 10 segundos es suficiente para queries a DynamoDB
@@ -264,12 +264,12 @@ resource "aws_cloudwatch_log_group" "tracking" {
 # ============================================================================
 
 resource "aws_lambda_function" "notifications" {
-  filename         = "${path.module}/../lambda-simple/notifications/deployment.zip"
+  filename         = "${path.module}/../lambda/notifications/deployment.zip"
   function_name    = "${var.project}-notifications-${var.environment}"
   role            = aws_iam_role.lambda_role.arn
   handler         = "index.handler"
   runtime         = "python3.11"
-  source_code_hash = filebase64sha256("${path.module}/../lambda-simple/notifications/deployment.zip")
+  source_code_hash = filebase64sha256("${path.module}/../lambda/notifications/deployment.zip")
 
   # Menor timeout y memoria porque solo envía notificaciones
   timeout     = 5
